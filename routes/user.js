@@ -177,14 +177,14 @@ router.get('/checkToken',authentication.authenticateToken,(request,response)=>{
 router.post('/changePassword',authentication.authenticateToken,(request,response)=>{
     const user = request.body;
     const email = response.locals.email;
-    var queryi = "select * from user where email = ? and password =?";
+    var queryi = "select * from users where email = ? and password =?";
     database.query(queryi,[email,user.oldPassword],(error,results)=>{
         if(!error){
             if(results.length<=0){
                 return response.status(400).json({message : "incorrect old password"});
             }
             else if(results[0].password == user.oldPassword){
-                queryi = "update user set password =? where email = ?";
+                queryi = "update users set password =? where email = ?";
                 database.query(queryi,[user.confirmPassword,email],(error,results)=>{
                     if(!error){
                         return response.status(200).json({message : "Password updated Succesfully."});
