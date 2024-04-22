@@ -15,42 +15,42 @@ var authentication = require('../services/authentication');
 var role = require('../services/checkRole');
 
 //creating api for signup
-router.post('/signup',(request,response)=>{
-    //hitting mysql query to database and checking for error and responses.
-    let user = request.body;
-    queryy = "select username,password,user_type from users where username =?"
-    //only one user is allowed with one email so checking weither this email is already registered or not.
-    database.query(queryy,[user.username],(error,results)=>{
-        if(!error){
-            //if no one with this email is already there registering them.
-            if(results.length<=0){
-                queryi = "insert into users(name,contactNumber,email, password,status,role) values(?,?,?,?,'false','user')"
-                database.query(queryi,[user.name,user.contactNumber,user.email,user.password],(error,results)=>{
-                    if(!error){
-                        return response.status(200).json({message: "Successfully Registered, waiting for admin approval"});
-                    }
-                    else{
-                        return response.status(500).json(error);
-                    }
+// router.post('/signup',(request,response)=>{
+//     //hitting mysql query to database and checking for error and responses.
+//     let user = request.body;
+//     queryy = "select username,password,user_type from users where username =?"
+//     //only one user is allowed with one email so checking weither this email is already registered or not.
+//     database.query(queryy,[user.username],(error,results)=>{
+//         if(!error){
+//             //if no one with this email is already there registering them.
+//             if(results.length<=0){
+//                 queryi = "insert into users(name,contactNumber,email, password,status,role) values(?,?,?,?,'false','user')"
+//                 database.query(queryi,[user.name,user.contactNumber,user.email,user.password],(error,results)=>{
+//                     if(!error){
+//                         return response.status(200).json({message: "Successfully Registered, waiting for admin approval"});
+//                     }
+//                     else{
+//                         return response.status(500).json(error);
+//                     }
 
-                })
-            }
-            //else displaying message already registered
-            else
-            {
-                return response.status(400).json({message : "Already Registered with this username"});
-            }
-        }
-        else{
-            return response.status(500).json(error)
-        }
-    });
-})
+//                 })
+//             }
+//             //else displaying message already registered
+//             else
+//             {
+//                 return response.status(400).json({message : "Already Registered with this username"});
+//             }
+//         }
+//         else{
+//             return response.status(500).json(error)
+//         }
+//     });
+// })
 
 //creating api for login
 router.post('/login',(request,response)=>{
     const user = request.body;
-    queryi = "select username,password from user where username = ?";
+    queryi = "select user_id,username,password,user_type from users where username = ?";
     database.query(queryi,[user.username],(error,results)=>{
         if(!error){
             //if no user with given email, showing incorrect username or password
@@ -60,7 +60,7 @@ router.post('/login',(request,response)=>{
             //if user is not verified by admin, displaying message
             //incase of correct password making a jwt token containg email and role and returning it.
             else if(results[0].password==user.password){            
-                const data = { username: results[0].username, role : results[0].role}
+                const data = { user_id: results[0].user_id, user_type : results[0].user_type}
                 const accessToken = jwt.sign(data,process.env.ACCESS_TOKEN_KEY,{expiresIn:'8h'})
                 response.status(200).json({token: accessToken});
             }
@@ -86,7 +86,7 @@ var mailer = nodemailer.createTransport({
 //making an api for forgot Password
 router.post('/forgotPassword',(request,response)=>{
     const user = request.body;
-    queryi = "select username,password from user where username = ?";
+    queryi = "select username,password from users where username = ?";
     database.query(queryi,[user.username],(error,results)=>{
         if(!error){
             if(results.length<=0){
@@ -170,9 +170,10 @@ router.patch('/update',authentication.authenticateToken,role.isAdmin,(request,re
 
 //api for checking token
 router.get('/checkToken',authentication.authenticateToken,(request,response)=>{
-    return response.status(200).json({message: "true"});
-})
-
+    const userId = response.locals.user_id;
+    const userType = response.locals.user_type;
+    return response.status(200).json({message: "true", userId, userType});
+});
 //api for changing password
 router.post('/changePassword',authentication.authenticateToken,(request,response)=>{
     const user = request.body;
