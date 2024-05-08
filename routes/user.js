@@ -20,7 +20,7 @@ router.post('/signup',(request,response)=>{
     let user = request.body;
     queryy = "select username,password,user_type from users where username =?"
     //only one user is allowed with one email so checking weither this email is already registered or not.
-    database.query(queryy,[user.username],(error,results)=>{
+    database.query(queryy,[user.userName],(error,results)=>{
         if(!error){
             //if no one with this email is already there registering them.
             if(results.length<=0){
@@ -50,8 +50,8 @@ router.post('/signup',(request,response)=>{
 //creating api for login
 router.post('/login',(request,response)=>{
     const user = request.body;
-    queryi = "select username,password from user where username = ?";
-    database.query(queryi,[user.username],(error,results)=>{
+    queryi = "select username,password from users where username = ?";
+    database.query(queryi,[user.userName],(error,results)=>{
         if(!error){
             //if no user with given email, showing incorrect username or password
             if(results.length<=0||results[0].password!=user.password){
