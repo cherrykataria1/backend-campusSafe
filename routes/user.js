@@ -15,25 +15,6 @@ var authentication = require('../services/authentication');
 var role = require('../services/checkRole');
 
 //creating api for signup
-<<<<<<< HEAD
-router.post('/signup',(request,response)=>{
-    //hitting mysql query to database and checking for error and responses.
-    let user = request.body;
-    queryy = "select username,password,user_type from users where username =?"
-    //only one user is allowed with one email so checking weither this email is already registered or not.
-    database.query(queryy,[user.userName],(error,results)=>{
-        if(!error){
-            //if no one with this email is already there registering them.
-            if(results.length<=0){
-                queryi = "insert into users(name,contactNumber,email, password,status,role) values(?,?,?,?,'false','user')"
-                database.query(queryi,[user.name,user.contactNumber,user.email,user.password],(error,results)=>{
-                    if(!error){
-                        return response.status(200).json({message: "Successfully Registered, waiting for admin approval"});
-                    }
-                    else{
-                        return response.status(500).json(error);
-                    }
-=======
 // router.post('/signup',(request,response)=>{
 //     //hitting mysql query to database and checking for error and responses.
 //     let user = request.body;
@@ -51,7 +32,6 @@ router.post('/signup',(request,response)=>{
 //                     else{
 //                         return response.status(500).json(error);
 //                     }
->>>>>>> 94a688c75316376f0d9c83e43e60ca85d809855d
 
 //                 })
 //             }
@@ -70,13 +50,8 @@ router.post('/signup',(request,response)=>{
 //creating api for login
 router.post('/login',(request,response)=>{
     const user = request.body;
-<<<<<<< HEAD
-    queryi = "select username,password from users where username = ?";
-    database.query(queryi,[user.userName],(error,results)=>{
-=======
     queryi = "select user_id,username,password,user_type from users where username = ?";
     database.query(queryi,[user.username],(error,results)=>{
->>>>>>> 94a688c75316376f0d9c83e43e60ca85d809855d
         if(!error){
             //if no user with given email, showing incorrect username or password
             if(results.length<=0||results[0].password!=user.password){
