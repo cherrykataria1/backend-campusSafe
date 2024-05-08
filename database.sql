@@ -73,3 +73,6 @@ CREATE TABLE IF NOT EXISTS student_subjects (
     FOREIGN KEY (student_id) REFERENCES students(student_id),
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
 );
+
+INSERT INTO users ( user_id, userName, password, user_type )
+    VALUES (1, "cherrykataria", "Cherry", 'admin');
