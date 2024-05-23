@@ -38,10 +38,8 @@ CREATE TABLE IF NOT EXISTS students (
 CREATE TABLE IF NOT EXISTS teachers (
     teacher_id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT UNIQUE,
-    class_id INT,
     full_name VARCHAR(100) NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(user_id),
-    FOREIGN KEY (class_id) REFERENCES classes(class_id)
+    FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
 -- Table for Admins
@@ -66,13 +64,25 @@ CREATE TABLE IF NOT EXISTS health_stats (
 );
 
 -- Table for Student-Subject Relationship (Assuming Many-to-Many)
-CREATE TABLE IF NOT EXISTS student_subjects (
-    student_id INT,
+CREATE TABLE IF NOT EXISTS class_subjects (
+	id INT PRIMARY KEY AUTO_INCREMENT,
+    class_id INT,
     subject_id INT,
-    PRIMARY KEY (student_id, subject_id),
-    FOREIGN KEY (student_id) REFERENCES students(student_id),
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+    teacher_id INT,
+    FOREIGN KEY (class_id) REFERENCES classes(class_id),
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id),
+    FOREIGN KEY (teacher_id) REFERENCES teachers(teacher_id)
 );
 
-INSERT INTO users ( user_id, userName, password, user_type )
-    VALUES (1, "cherrykataria", "Cherry", 'admin');
+insert into users (username, password, user_type) values ('Rahul', 'Rahul121' , 'admin');
+insert into classes (class_name) values ('CSE 25');
+
+select * from users;
+select * from students;
+
+ALTER TABLE health_stats
+        DROP COLUMN height,
+        DROP COLUMN weight,
+        DROP COLUMN blood_pressure,
+        DROP COLUMN other_stats,
+        ADD COLUMN temperature DECIMAL(5, 2);
