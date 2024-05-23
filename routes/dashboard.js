@@ -54,56 +54,77 @@ router.get('/:classId/getStudents', (req, res) => {
     });
 });
 
-// router.get('/studentsData/:studentId', (req, res) => {
-//     const studentId = req.params.studentId;
+router.get('/studentsData/:userId', (req, res) => {
+    const userId = req.params.userId;
 
-//     const query = `
-//         SELECT 
-//             s.full_name as full_name,
-//             hs.height,
-//             hs.weight,
-//             hs.blood_pressure,
-//             hs.heart_rate,
-//             sub.subject_id,
-//             sub.subject_name
-//         FROM students s
-//         LEFT JOIN (
-//             SELECT 
-//                 *,
-//                 ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY timestamp DESC) AS row_num
-//             FROM health_stats
-//         ) hs ON s.student_id = hs.student_id AND hs.row_num <= 5
-//         LEFT JOIN student_subjects ss ON s.student_id = ss.student_id
-//         LEFT JOIN subjects sub ON ss.subject_id = sub.subject_id
-//         WHERE s.student_id = ?;
-//     `;
+    const queries = {
+        getStudentInfo: `
+            SELECT
+                full_name AS student_name,
+                date_of_birth,
+                gender,
+                class_id,
+                student_id
+            FROM students
+            WHERE user_id = ?;
+        `,
+        queryFindClassInfo: `
+        SELECT 
+            cs.class_id,
+            cs.subject_id,
+            sub.subject_name,
+            t.full_name AS teacher_name
+        FROM class_subjects cs
+        INNER JOIN subjects sub ON cs.subject_id = sub.subject_id
+        INNER JOIN teachers t ON cs.teacher_id = t.teacher_id
+        WHERE cs.class_id = ?;
+    `,
+        getLastFiveHealthStats: `
+            SELECT 
+                height,
+                weight,
+                blood_pressure,
+                heart_rate,
+                other_stats
+            FROM (
+                SELECT 
+                    *,
+                    ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY timestamp DESC) AS row_num
+                FROM health_stats
+            ) AS ranked_health_stats
+            WHERE student_id = ?
+            AND row_num <= 5;
+        `
+    };
 
-//     database.query(query, [studentId], (error, results) => {
-//         if (error) {
-//             return res.status(500).json({
-//                 message: "Error retrieving student data from the database",
-//                 error
-//             });
-//         }
-//         const studentData = {
-//             full_name: results[0].full_name,
-//             healthStats: results.map(row => ({
-//                 height: row.height,
-//                 weight: row.weight,
-//                 blood_pressure: row.blood_pressure,
-//                 heart_rate: row.heart_rate
-//             })),
-//             subjectsEnrolled: results.map(row => ({
-//                 subject_id: row.subject_id,
-//                 subject_name: row.subject_name
-//             }))
-//         };
-//         res.status(200).json({
-//             message: "Student data retrieved successfully",
-//             data: studentData
-//         });
-//     });
-// });
+
+    database.query(queries.getStudentInfo, [userId], (error, results) => {
+        if (error) {
+            return res.status(500).json({
+                message: "Error retrieving student info from the database",
+                error
+            });
+        }
+        if (results.length === 0) {
+            return res.status(404).json({
+                message: "Student not found"
+            });
+        }
+        const studentInfo = results[0];
+        const classId = studentInfo.class_id;
+        const studentId = studentInfo.student_id;
+        database.query(queries.queryFindClassInfo, [classId], (error, classInfo) => {
+            if (error) {
+                return res.status(500).json({
+                    message: "Error retrieving class info from the database",
+                    error,
+                    data: studentInfo
+                });
+            }
+            
+        });
+    });
+});
 
 router.post('/api/students/:studentId/health', (req, res) => {
     const studentId = req.params.studentId;
