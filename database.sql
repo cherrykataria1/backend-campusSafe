@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS classes (
 -- Table for Subjects
 CREATE TABLE IF NOT EXISTS subjects (
     subject_id INT PRIMARY KEY AUTO_INCREMENT,
-    subject_name VARCHAR(100) NOT NULL
+    subject_name VARCHAR(100) NOT NULL,
+    subject_code VARCHAR(20)
 );
 
 -- Table for Students
@@ -29,6 +30,7 @@ CREATE TABLE IF NOT EXISTS students (
     class_id INT,
     full_name VARCHAR(100) NOT NULL,
     date_of_birth DATE,
+    rollno bigint,
     gender ENUM('male', 'female', 'other'),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (class_id) REFERENCES classes(class_id)
@@ -55,11 +57,9 @@ CREATE TABLE IF NOT EXISTS health_stats (
     stat_id INT PRIMARY KEY AUTO_INCREMENT,
     student_id INT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    height DECIMAL(5, 2),
-    weight DECIMAL(5, 2),
-    blood_pressure VARCHAR(20),
+    temp DECIMAL(3, 2),
     heart_rate INT,
-    other_stats TEXT,
+    loc VARCHAR(100),
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
 
@@ -80,9 +80,12 @@ insert into classes (class_name) values ('CSE 25');
 select * from users;
 select * from students;
 
-ALTER TABLE health_stats
-        DROP COLUMN height,
-        DROP COLUMN weight,
-        DROP COLUMN blood_pressure,
-        DROP COLUMN other_stats,
-        ADD COLUMN temperature DECIMAL(5, 2);
+CREATE TABLE IF NOT EXISTS attendance (
+    attendance_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT,
+    subject_id INT,
+    attendance_date DATE,
+    status ENUM('present', 'absent') NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id),
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+);
