@@ -89,3 +89,9 @@ CREATE TABLE IF NOT EXISTS attendance (
     FOREIGN KEY (student_id) REFERENCES students(student_id),
     FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
 );
+
+CREATE TABLE IF NOT EXISTS wifi_networks (
+    wifi_id INT PRIMARY KEY AUTO_INCREMENT,
+    ssid VARCHAR(255) NOT NULL,
+    location VARCHAR(255) NOT NULL
+);
