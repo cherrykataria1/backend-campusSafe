@@ -116,9 +116,10 @@ router.get('/studentsData/:userId', (req, res) => {
         const studentId = studentInfo.student_id;
         let classdata;
         let className;
-        database.query('Select class_name from classes where class_id = ?',[classId],(err,cn)) =>{
-            className = cn[0];
-        }
+        let qry = 'Select class_name from classes where class_id = ?';
+        database.query(qry,[classId],(err,cn) =>{
+            className = cn[0].class_name;
+        });
         database.query(queries.queryFindClassInfo, [classId], (error, classInfo) => {
             if (error) {
                 return res.status(500).json({
