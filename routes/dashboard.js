@@ -71,9 +71,9 @@ router.get('/studentsData/:userId', (req, res) => {
         `,
         queryFindClassInfo: `
         SELECT 
-            cs.class_id,
-            cs.subject_id,
-            sub.subject_name,
+            cs.class_id as class_id,
+            cs.subject_id as subject_id,
+            sub.subject_name as subject_name,
             t.full_name AS teacher_name
         FROM class_subjects cs
         INNER JOIN subjects sub ON cs.subject_id = sub.subject_id
@@ -115,6 +115,10 @@ router.get('/studentsData/:userId', (req, res) => {
         const classId = studentInfo.class_id;
         const studentId = studentInfo.student_id;
         let classdata;
+        let className;
+        database.query('Select class_name from classes where class_id = ?',[classId],(err,cn)) =>{
+            className = cn[0];
+        }
         database.query(queries.queryFindClassInfo, [classId], (error, classInfo) => {
             if (error) {
                 return res.status(500).json({
@@ -138,6 +142,7 @@ router.get('/studentsData/:userId', (req, res) => {
                         name: studentInfo.student_name, 
                         studentId: studentId,
                         classId: classId,
+                        className,
                         date_of_birth: studentInfo.date_of_birth,
                         gender: studentInfo.gender,
                         status: studentInfo.status,
