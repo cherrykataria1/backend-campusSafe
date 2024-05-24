@@ -95,3 +95,6 @@ CREATE TABLE IF NOT EXISTS wifi_networks (
     ssid VARCHAR(255) NOT NULL,
     location VARCHAR(255) NOT NULL
 );
+
+ALTER TABLE students
+ADD COLUMN status VARCHAR(255);

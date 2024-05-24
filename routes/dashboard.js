@@ -64,7 +64,8 @@ router.get('/studentsData/:userId', (req, res) => {
                 date_of_birth,
                 gender,
                 class_id,
-                student_id
+                student_id,
+                status
             FROM students
             WHERE user_id = ?;
         `,
