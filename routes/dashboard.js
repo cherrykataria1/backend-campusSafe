@@ -143,7 +143,7 @@ router.get('/studentsData/:userId', (req, res) => {
                         name: studentInfo.student_name, 
                         studentId: studentId,
                         classId: classId,
-                        className,
+                        className: className,
                         date_of_birth: studentInfo.date_of_birth,
                         gender: studentInfo.gender,
                         status: studentInfo.status,
@@ -180,6 +180,31 @@ router.post('/api/students/:studentId/health', (req, res) => {
             return res.status(500).json({ message: "Failed to insert health stats into the database" });
         }
         res.status(201).json({ message: "Health stats inserted successfully" });
+    });
+});
+
+
+router.get('/students/:studentId/subjects/:subjectId/attendance', (req, res) => {
+    const studentId = req.params.studentId;
+    const subjectId = req.params.subjectId;
+
+    const query = `
+        SELECT attendance_date, status
+        FROM attendance
+        WHERE student_id = ? AND subject_id = ?;
+    `;
+
+    database.query(query, [studentId, subjectId], (error, results) => {
+        if (error) {
+            return res.status(500).json({
+                message: "Error retrieving attendance data from the database",
+                error: error
+            });
+        }
+        res.status(200).json({
+            message: "Attendance data retrieved successfully",
+            data: results
+        });
     });
 });
 
