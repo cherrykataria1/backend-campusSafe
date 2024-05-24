@@ -9,7 +9,7 @@ var role = require('../services/checkRole');
 
 //api for getting the details of total number of category, products and bills.
 
-router.get('/getClasses', (req, res) => {
+router.get('/getClasses',auth.authenticateToken, (req, res) => {
     const queryy = `
         SELECT classes.class_id, classes.class_name, COUNT(students.student_id) AS num_students
         FROM classes
@@ -31,7 +31,7 @@ router.get('/getClasses', (req, res) => {
     });
 });
 
-router.get('/:classId/getStudents', (req, res) => {
+router.get('/:classId/getStudents',auth.authenticateToken, (req, res) => {
     const classId = req.params.classId;
 
     const query = `
@@ -54,7 +54,7 @@ router.get('/:classId/getStudents', (req, res) => {
     });
 });
 
-router.get('/studentsData/:userId', (req, res) => {
+router.get('/studentsData/:userId',auth.authenticateToken, (req, res) => {
     const userId = req.params.userId;
 
     const queries = {
@@ -155,33 +155,142 @@ router.get('/studentsData/:userId', (req, res) => {
     });
 });
 
-router.post('/api/students/:studentId/health', (req, res) => {
-    const studentId = req.params.studentId;
-    const { height, weight, blood_pressure, heart_rate, other_stats } = req.body;
+const getSubjectsForStudentQuery = `
+    SELECT
+        cs.subject_id,
+        s.subject_name,
+        t.full_name AS teacher_name
+    FROM
+        students st
+        JOIN classes c ON st.class_id = c.class_id
+        JOIN class_subjects cs ON c.class_id = cs.class_id
+        JOIN subjects s ON cs.subject_id = s.subject_id
+        JOIN teachers t ON cs.teacher_id = t.teacher_id
+    WHERE
+        st.student_id = ?;
+`;
 
-    // Validate input data
-    if (!height || !weight || !blood_pressure || !heart_rate) {
-        return res.status(400).json({ message: "Missing required fields" });
-    }
+// SQL query to get the total number of lectures and attended lectures for each subject
+const getLecturesForSubjectsQuery = `
+    SELECT
+        l.subject_id,
+        COUNT(l.lecture_id) AS total_lectures,
+        COUNT(a.attendance_id) AS attended_lectures
+    FROM
+        lecture l
+        LEFT JOIN attendance a ON l.lecture_id = a.lecture_id AND a.student_id = ?
+    WHERE
+        l.subject_id IN (
+            SELECT cs.subject_id
+            FROM students st
+            JOIN classes c ON st.class_id = c.class_id
+            JOIN class_subjects cs ON c.class_id = cs.class_id
+            WHERE st.student_id = ?
+        )
+    GROUP BY
+        l.subject_id;
+`;
 
-    const healthData = {
-        student_id: studentId,
-        height: height,
-        weight: weight,
-        blood_pressure: blood_pressure,
-        heart_rate: heart_rate,
-        other_stats: other_stats
-    };
+// API endpoint to get subject details for a student
+router.get('/:userId/subjects', auth.authenticateToken, async (req, res) => {
+    const { userId } = req.params;
 
-    // Insert health data into the database
-    database.query('INSERT INTO health_stats SET ?', healthData, (error, result) => {
-        if (error) {
-            console.error("Error inserting health stats:", error);
-            return res.status(500).json({ message: "Failed to insert health stats into the database" });
+    database.query('SELECT student_id FROM students WHERE user_id = ?', [userId], (err, studentRows) => {
+        if (err) {
+            console.error('Error fetching student:', err);
+            return res.status(500).json({ success: false, message: 'An error occurred while fetching student' });
         }
-        res.status(201).json({ message: "Health stats inserted successfully" });
+
+        if (!studentRows || studentRows.length === 0) {
+            return res.status(404).json({ success: false, message: 'Student not found' });
+        }
+
+        const studentId = studentRows[0].student_id;
+
+        database.query(getSubjectsForStudentQuery, [studentId], (err, subjectRows) => {
+            if (err) {
+                console.error('Error fetching subjects:', err);
+                return res.status(500).json({ success: false, message: 'An error occurred while fetching subjects' });
+            }
+
+            if (!Array.isArray(subjectRows)) {
+                return res.status(500).json({ success: false, message: 'Invalid subjects data format' });
+            }
+
+            database.query(getLecturesForSubjectsQuery, [studentId, studentId], (err, lectureRows) => {
+                if (err) {
+                    console.error('Error fetching lectures:', err);
+                    return res.status(500).json({ success: false, message: 'An error occurred while fetching lectures' });
+                }
+
+                if (!Array.isArray(lectureRows)) {
+                    return res.status(500).json({ success: false, message: 'Invalid lectures data format' });
+                }
+
+                const subjects = subjectRows.map(subject => {
+                    const lectureData = lectureRows.find(l => l.subject_id === subject.subject_id) || {};
+                    return {
+                        ...subject,
+                        total_lectures: lectureData.total_lectures || 0,
+                        attended_lectures: lectureData.attended_lectures || 0
+                    };
+                });
+
+                res.json({ success: true, data: subjects });
+            });
+        });
     });
 });
+
+
+router.get('/health-stats/:studentId',auth.authenticateToken, async (req, res) => {
+    const { studentId } = req.params;
+    const { duration } = req.query;
+
+    // Get the appropriate time range based on the duration
+    let fromDate;
+    switch (duration) {
+        case '1day':
+            fromDate = new Date(Date.now() - (24 * 60 * 60 * 1000)); // 1 day ago
+            break;
+        case '1week':
+            fromDate = new Date(Date.now() - (7 * 24 * 60 * 60 * 1000)); // 1 week ago
+            break;
+        case '2weeks':
+            fromDate = new Date(Date.now() - (14 * 24 * 60 * 60 * 1000)); // 2 weeks ago
+            break;
+        case '1month':
+            fromDate = new Date(Date.now() - (30 * 24 * 60 * 60 * 1000)); // 1 month ago
+            break;
+        default:
+            fromDate = null; // For all time
+    }
+
+    try {
+        let query = `SELECT * FROM health_stats WHERE student_id = ?`;
+        let params = [studentId];
+
+        // If duration is specified, add a condition to filter by timestamp
+        if (fromDate) {
+            query += ` AND timestamp >= ?`;
+            params.push(fromDate);
+        }
+
+        // Execute the query
+        database.query(query, params, (err, result) => {
+            if (err) {
+                console.error('Error fetching health stats:', err);
+                res.status(500).json({ error: 'Internal Server Error' });
+            } else {
+                res.json({ healthStats: result });
+            }
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 
 module.exports = router;

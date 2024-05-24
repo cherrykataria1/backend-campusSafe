@@ -12,7 +12,6 @@ require('dotenv').config();
 
 //importing authentication and role files from services folder
 var authentication = require('../services/authentication');
-var role = require('../services/checkRole');
 
 //creating api for signup
 // router.post('/signup',(request,response)=>{
@@ -120,7 +119,7 @@ router.post('/forgotPassword',(request,response)=>{
 })
 
 //api for getting information about all the users.
-router.get('/get',authentication.authenticateToken,role.isAdmin,(request,response)=>{
+router.get('/get',authentication.authenticateToken,(request,response)=>{
     var queryi = "select id,name,email,contactNumber,status from user where role='user'";
     database.query(queryi,(error,results)=>{
         if(!error){
@@ -147,7 +146,7 @@ router.get('/getName',authentication.authenticateToken,(request,response)=>{
 })
 
 //api for updating role of user
-router.patch('/update',authentication.authenticateToken,role.isAdmin,(request,response)=>{
+router.patch('/update',authentication.authenticateToken,(request,response)=>{
     let user = request.body;
     var queryi = "update user set status =? where id = ?";
     database.query(queryi,[user.status,user.id],(error,results)=>{
