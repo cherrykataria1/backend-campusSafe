@@ -81,21 +81,20 @@ router.get('/studentsData/:userId', (req, res) => {
         WHERE cs.class_id = ?;
     `,
         getLastFiveHealthStats: `
+        SELECT 
+            temp,
+            heart_rate,
+            loc,
+            timestamp
+        FROM (
             SELECT 
-                height,
-                weight,
-                blood_pressure,
-                heart_rate,
-                other_stats
-            FROM (
-                SELECT 
-                    *,
-                    ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY timestamp DESC) AS row_num
-                FROM health_stats
-            ) AS ranked_health_stats
-            WHERE student_id = ?
-            AND row_num <= 5;
-        `
+                *,
+                ROW_NUMBER() OVER (PARTITION BY student_id ORDER BY timestamp DESC) AS row_num
+            FROM health_stats
+        ) AS ranked_health_stats
+        WHERE student_id = ?
+        AND row_num <= 5;
+    `
     };
 
 
@@ -112,8 +111,10 @@ router.get('/studentsData/:userId', (req, res) => {
             });
         }
         const studentInfo = results[0];
+        console.log(studentInfo);
         const classId = studentInfo.class_id;
         const studentId = studentInfo.student_id;
+        let classdata;
         database.query(queries.queryFindClassInfo, [classId], (error, classInfo) => {
             if (error) {
                 return res.status(500).json({
@@ -122,7 +123,28 @@ router.get('/studentsData/:userId', (req, res) => {
                     data: studentInfo
                 });
             }
-            
+            classdata = classInfo;
+            console.log(classInfo);
+        });
+        database.query(queries.getLastFiveHealthStats, [studentId], (error, healthStats) => {
+            if (error) {
+                return res.status(500).json({
+                    message: "Error retrieving health stats of the student",
+                    error,
+                    data: studentInfo
+                });
+            }
+            const info = {
+                        name: studentInfo.student_name, 
+                        studentId: studentId,
+                        classId: classId,
+                        date_of_birth: studentInfo.date_of_birth,
+                        gender: studentInfo.gender,
+                        status: studentInfo.status,
+                        classInfo: classdata,
+                        healthStats
+                    };
+            return res.status(200).json({data:info});
         });
     });
 });
