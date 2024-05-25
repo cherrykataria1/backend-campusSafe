@@ -279,7 +279,7 @@ router.get('/:studentId/subjects/:subjectId/attendance', (req, res) => {
             res.status(200).json({
                 message: "Lecture and attendance data retrieved successfully",
                 data: results,
-                subName
+                subName: subName
             });
         })
         
