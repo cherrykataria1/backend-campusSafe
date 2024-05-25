@@ -1,7 +1,7 @@
 const express = require('express');
 const database = require('../database');
 const router = express.Router();
-
+const {broadcastToRelevantClients} = require('../wsManager')
 
 // API endpoint to get teacher details using user ID
 router.get('/teacher/:userId', async (req, res) => {
@@ -167,11 +167,21 @@ router.post('/addLecture',  async (req, res) => {
                 res.status(500).json({ error: 'Internal Server Error' });
             } else {
                 // Return success message or newly created lecture ID
-                database.query('select location from wifi_networks where wifi_id =  ?',[wifi_id],(err))
-                const newLecture = { lecture_date, loc, lecture_details, subject_id, class_id };
-                broadcastToRelevantClients({ type: 'ATTENDANCE_REQUEST', lecture: newLecture ,lectureId: result.insertId});
-
-                res.status(200).json({ message: 'New lecture posted successfully', lectureId: result.insertId });
+                let loc;
+                database.query('select location from wifi_networks where wifi_id =  ?',[wifi_id],(err,ress) =>{
+                    if(err){
+                        console.error('no wifi id location');
+                    }
+                    else{
+                        console.log(res);
+                        loc = ress[0].location;
+                        console.log(loc);
+                    }
+                    const newLecture = { lecture_date, loc, lecture_details, subject_id, class_id };
+                    console.log('adding new lecture',newLecture);
+                    broadcastToRelevantClients({ type: 'VERIFY_ATTENDANCE', lecture: newLecture ,lectureId: result.insertId});
+                    res.status(200).json({ message: 'New lecture posted successfully', lectureId: result.insertId });
+                });
             }
         });
     } catch (error) {

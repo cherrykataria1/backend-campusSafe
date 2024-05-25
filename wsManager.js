@@ -56,7 +56,7 @@ function broadcastToRelevantClients(data) {
         FROM students
         WHERE class_id = ?
     `;
-
+    console.log(clients);
     // Execute the query
     database.query(getStudentsInClassQuery, [lectureClassId], (err, results) => {
         if (err) {
@@ -65,17 +65,18 @@ function broadcastToRelevantClients(data) {
         }
 
         const studentsInClass = results.map(row => row.student_id);
-
+        console.log('students in class : ', studentsInClass);
         clients.forEach((value, key) => {
+            console.log('students in class includes key ',studentsInClass.includes(key),'value . location ', value.location, 'lecture location ', lectureLocation);
             if (
                 studentsInClass.includes(key) &&  // Check if the student is in the class
-                value.location === lectureLocation &&   // Check if the location matches
-                value.ws.readyState === WebSocket.OPEN // Check if the WebSocket connection is open
+                value.location === lectureLocation// Check if the WebSocket connection is open
             ) {
+                console.log('found client ',key);
                 const output = {
                     action: data.type,
                     lectureId : data.lectureId,
-                    studentId : data.lecture.student_id,
+                    studentId : key,
                     location : data.lecture.loc
                 }
                 value.ws.send(JSON.stringify(output));
@@ -89,7 +90,7 @@ function handleAttendanceResponse(parsedMessage) {
     // SQL query to insert the attendance entry
     const insertAttendanceQuery = `
         INSERT INTO attendance (student_id, lecture_id, status)
-        VALUES (?, ?, 'present' , ?)
+        VALUES (?, ?, 'present' )
     `;
 
     // Execute the query
