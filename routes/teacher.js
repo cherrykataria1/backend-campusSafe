@@ -3,28 +3,26 @@ const database = require('../database');
 const router = express.Router();
 
 
-const getTeacherDetailsByUserIdQuery = `
-    SELECT 
-        t.teacher_id, 
-        t.full_name, 
-        u.username, 
-        u.user_type
-    FROM 
-        teachers t
-    JOIN 
-        users u ON t.user_id = u.user_id
-    WHERE 
-        u.user_id = ?;
-`;
-
 // API endpoint to get teacher details using user ID
 router.get('/teacher/:userId', async (req, res) => {
     const { userId } = req.params;
 
-    try {
-        // Execute the query to fetch teacher details
-        const [rows] = await database.query(getTeacherDetailsByUserIdQuery, [userId]);
-        
+    // Define the query to fetch teacher details
+    const getTeacherDetailsByUserIdQuery = `
+        SELECT * FROM teachers WHERE user_id = ?;
+    `;
+
+    // Execute the query to fetch teacher details
+    database.query(getTeacherDetailsByUserIdQuery, [userId], (err, rows) => {
+        if (err) {
+            console.error('Error fetching teacher details:', err);
+            return res.status(500).json({
+                success: false,
+                message: 'An error occurred while fetching teacher details',
+                error: err
+            });
+        }
+
         // Check if a teacher was found
         if (rows.length === 0) {
             return res.status(404).json({
@@ -38,13 +36,7 @@ router.get('/teacher/:userId', async (req, res) => {
             success: true,
             data: rows[0]
         });
-    } catch (error) {
-        console.error('Error fetching teacher details:', error);
-        res.status(500).json({
-            success: false,
-            message: 'An error occurred while fetching teacher details'
-        });
-    }
+    });
 });
 
 router.get('/classes/:teacherId', async (req, res) => {
@@ -132,5 +124,61 @@ router.get('/lectures/:classId/:subjectId', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+router.get('/wifi', async (req, res) => {
+    try {
+        // Query to fetch all wifi locations and SSIDs
+        const query = `
+            SELECT wifi_id, ssid, location
+            FROM wifi_networks;
+        `;
+        
+        // Execute the query
+        database.query(query, (err, result) => {
+            if (err) {
+                console.error('Error fetching wifi networks:', err);
+                res.status(500).json({ error: 'Internal Server Error' });
+            } else {
+                res.json({ wifiNetworks: result });
+            }
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
+router.post('/addLecture',  async (req, res) => {
+    const { lecture_date, subject_id, class_id, lecture_details, wifi_id } = req.body;
+
+    try {
+        // Validate incoming data (you can add more validation as needed)
+
+        // Query to insert a new lecture into the database
+        const query = `
+            INSERT INTO lecture (lecture_date, subject_id, class_id, lecture_details, wifi_id)
+            VALUES (?, ?, ?, ?, ?);
+        `;
+        
+        // Execute the query with the provided data
+        database.query(query, [lecture_date, subject_id, class_id, lecture_details, wifi_id], (err, result) => {
+            if (err) {
+                console.error('Error posting new lecture:', err);
+                res.status(500).json({ error: 'Internal Server Error' });
+            } else {
+                // Return success message or newly created lecture ID
+                database.query('select location from wifi_networks where wifi_id =  ?',[wifi_id],(err))
+                const newLecture = { lecture_date, loc, lecture_details, subject_id, class_id };
+                broadcastToRelevantClients({ type: 'ATTENDANCE_REQUEST', lecture: newLecture ,lectureId: result.insertId});
+
+                res.status(200).json({ message: 'New lecture posted successfully', lectureId: result.insertId });
+            }
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 
 module.exports = router;
