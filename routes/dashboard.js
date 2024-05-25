@@ -243,27 +243,46 @@ router.get('/:userId/subjects', auth.authenticateToken, async (req, res) => {
 });
 
 
-router.get('/students/:studentId/subjects/:subjectId/attendance', (req, res) => {
+router.get('/:studentId/subjects/:subjectId/attendance', (req, res) => {
     const studentId = req.params.studentId;
     const subjectId = req.params.subjectId;
 
     const query = `
-        SELECT attendance_date, status
-        FROM attendance
-        WHERE student_id = ? AND subject_id = ?;
+        SELECT 
+            l.lecture_id,
+            l.lecture_date,
+            l.lecture_details,
+            w.location,
+            IF(a.status IS NULL, 'absent', a.status) AS status
+        FROM 
+            lecture l
+        LEFT JOIN 
+            attendance a ON l.lecture_id = a.lecture_id AND a.student_id = ?
+        INNER JOIN wifi_networks w ON l.wifi_id = w.wifi_id
+        WHERE 
+            l.subject_id = ?;
     `;
 
     database.query(query, [studentId, subjectId], (error, results) => {
         if (error) {
             return res.status(500).json({
-                message: "Error retrieving attendance data from the database",
+                message: "Error retrieving lecture and attendance data from the database",
                 error: error
             });
         }
-        res.status(200).json({
-            message: "Attendance data retrieved successfully",
-            data: results
-        });
+        database.query('select subject_name from subjects where subject_id = ?',[subjectId],(err,resp)=>{
+            if(err){
+               return res.status(500).json({message: "Error retrieving subjectName data from the database",
+               error: error}) ;
+            }
+            let subName = resp[0].subject_name;
+            res.status(200).json({
+                message: "Lecture and attendance data retrieved successfully",
+                data: results,
+                subName
+            });
+        })
+        
     });
 });
 
