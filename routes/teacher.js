@@ -201,6 +201,7 @@ router.get('/classes/:classId/subjects/:subjectId/lectures/:lectureId/attendance
         SELECT 
             t.full_name AS teacher_name,
             s.full_name AS student_name,
+            s.student_id,
             IF(a.status IS NULL, 'absent', a.status) AS attendance_status
         FROM 
             class_subjects cs
