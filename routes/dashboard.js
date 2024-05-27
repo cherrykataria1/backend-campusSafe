@@ -31,6 +31,28 @@ router.get('/getClasses',auth.authenticateToken, (req, res) => {
     });
 });
 
+router.get('/getSubjects',auth.authenticateToken, (req, res) => {
+    const queryy = `
+        SELECT subjects.subject_id, subjects.subject_name, COUNT(cs.class_id) AS num_classes
+        FROM subjects
+        LEFT JOIN class_subjects cs ON cs.subject_id = subjects.subject_id
+        GROUP BY subjects.subject_id, subjects.subject_name;
+    `;
+
+    database.query(queryy, (error, results) => {
+        if (error) {
+            return res.status(500).json({
+                message: "Error retrieving subjects from the database",
+                error: error
+            });
+        }
+        res.status(200).json({
+            message: "Subjects retrieved successfully",
+            data: results
+        });
+    });
+});
+
 router.get('/:classId/getStudents',auth.authenticateToken, (req, res) => {
     const classId = req.params.classId;
 
