@@ -191,4 +191,42 @@ router.post('/addLecture',  async (req, res) => {
 });
 
 
+router.get('/classes/:classId/subjects/:subjectId/lectures/:lectureId/attendance', (req, res) => {
+    const classId = req.params.classId;
+    const subjectId = req.params.subjectId;
+    const lectureId = req.params.lectureId;
+
+    // Query to get teacher's name, students, and their attendance status
+    const query = `
+        SELECT 
+            t.full_name AS teacher_name,
+            s.full_name AS student_name,
+            s.student_id,
+            IF(a.status IS NULL, 'absent', a.status) AS attendance_status
+        FROM 
+            class_subjects cs
+        INNER JOIN 
+            teachers t ON cs.teacher_id = t.teacher_id
+        INNER JOIN 
+            students s ON s.class_id = cs.class_id
+        LEFT JOIN 
+            attendance a ON s.student_id = a.student_id AND a.lecture_id = ?
+        WHERE 
+            cs.class_id = ? AND cs.subject_id = ?;
+    `;
+
+    database.query(query, [lectureId, classId, subjectId], (error, results) => {
+        if (error) {
+            return res.status(500).json({
+                message: "Error retrieving data from the database",
+                error: error
+            });
+        }
+        res.status(200).json({
+            message: "Data retrieved successfully",
+            data: results
+        });
+    });
+});
+
 module.exports = router;

@@ -63,6 +63,9 @@ CREATE TABLE IF NOT EXISTS health_stats (
     FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
 
+select *from health_stats;
+
+
 -- Table for Student-Subject Relationship (Assuming Many-to-Many)
 CREATE TABLE IF NOT EXISTS class_subjects (
 	id INT PRIMARY KEY AUTO_INCREMENT,
@@ -83,18 +86,33 @@ select * from students;
 CREATE TABLE IF NOT EXISTS attendance (
     attendance_id INT PRIMARY KEY AUTO_INCREMENT,
     student_id INT,
-    subject_id INT,
-    attendance_date DATE,
+    lecture_id INT,
     status ENUM('present', 'absent') NOT NULL,
-    FOREIGN KEY (student_id) REFERENCES students(student_id),
-    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id)
+    FOREIGN KEY (student_id) REFERENCES students(student_id)
 );
+
+
+ALTER TABLE students
+ADD COLUMN status VARCHAR(255);
+
+
+CREATE TABLE IF NOT EXISTS lecture (
+    lecture_id INT PRIMARY KEY AUTO_INCREMENT,
+    lecture_date DATE NOT NULL,
+    subject_id INT,
+    class_id INT,
+    lecture_details Varchar(255),
+    wifi_id INT,
+    FOREIGN KEY (subject_id) REFERENCES subjects(subject_id),
+    FOREIGN KEY (wifi_id) REFERENCES wifi_networks(wifi_id),
+    FOREIGN KEY (class_id) REFERENCES classes(class_id)
+);
+
 
 CREATE TABLE IF NOT EXISTS wifi_networks (
     wifi_id INT PRIMARY KEY AUTO_INCREMENT,
     ssid VARCHAR(255) NOT NULL,
-    location VARCHAR(255) NOT NULL
-);
+    location VARCHAR(255) NOT NULL
+    );
 
-ALTER TABLE students
-ADD COLUMN status VARCHAR(255);
+
