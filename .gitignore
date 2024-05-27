@@ -1,5 +1,6 @@
 node_modules
 env
+dotenv
 .env
 node_modules/.bin/ejs
 node_modules/.bin/ejs.cmd
